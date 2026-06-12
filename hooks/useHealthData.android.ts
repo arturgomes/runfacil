@@ -2,16 +2,24 @@
 // Reads heart rate, active calories, and steps recorded during a run window
 // (typically synced from a paired smartwatch's companion app).
 import { useCallback } from 'react';
-import {
-  initialize,
-  getSdkStatus,
-  requestPermission,
-  aggregateRecord,
-  SdkAvailabilityStatus,
-  type Permission,
-} from 'react-native-health-connect';
 import type { HealthData, PostRunHealthData } from './useHealthData';
 import { EMPTY_HEALTH_DATA } from './useHealthData';
+
+// Health Connect ships native code — unavailable in Expo Go, where requiring
+// it throws. Guarded require keeps the app usable there.
+let HC: any = null;
+try {
+  HC = require('react-native-health-connect');
+} catch {
+  HC = null;
+}
+
+const initialize = (...args: any[]) => HC.initialize(...args);
+const getSdkStatus = (...args: any[]) => HC.getSdkStatus(...args);
+const requestPermission = (...args: any[]) => HC.requestPermission(...args);
+const aggregateRecord = (...args: any[]): Promise<any> => HC.aggregateRecord(...args);
+
+type Permission = { accessType: 'read'; recordType: string };
 
 const READ_PERMISSIONS: Permission[] = [
   { accessType: 'read', recordType: 'HeartRate' },
@@ -20,8 +28,9 @@ const READ_PERMISSIONS: Permission[] = [
 ];
 
 async function isAvailable(): Promise<boolean> {
+  if (!HC) return false;
   try {
-    return (await getSdkStatus()) === SdkAvailabilityStatus.SDK_AVAILABLE;
+    return (await getSdkStatus()) === HC.SdkAvailabilityStatus.SDK_AVAILABLE;
   } catch {
     return false;
   }

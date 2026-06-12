@@ -2,16 +2,24 @@
 // Reads heart rate, active energy, and steps recorded during a run window
 // (typically synced from a paired Apple Watch).
 import { useCallback } from 'react';
-import {
-  isHealthDataAvailable,
-  requestAuthorization,
-  queryStatisticsForQuantity,
-} from '@kingstinct/react-native-healthkit';
 import type {
   HealthData,
   PostRunHealthData,
 } from './useHealthData';
 import { EMPTY_HEALTH_DATA } from './useHealthData';
+
+// HealthKit ships native code — unavailable in Expo Go, where requiring it
+// throws. Guarded require keeps the app usable there; real builds get HealthKit.
+let HK: any = null;
+try {
+  HK = require('@kingstinct/react-native-healthkit');
+} catch {
+  HK = null;
+}
+
+const isHealthDataAvailable = (): boolean => (HK ? HK.isHealthDataAvailable() : false);
+const requestAuthorization = (...args: any[]) => HK.requestAuthorization(...args);
+const queryStatisticsForQuantity = (...args: any[]) => HK.queryStatisticsForQuantity(...args);
 
 const HEART_RATE = 'HKQuantityTypeIdentifierHeartRate';
 const ACTIVE_ENERGY = 'HKQuantityTypeIdentifierActiveEnergyBurned';
